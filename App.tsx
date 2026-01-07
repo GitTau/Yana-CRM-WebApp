@@ -284,31 +284,24 @@ const App: React.FC = () => {
     const handleLegacyImport = async (data: any[]) => {
         setIsLoading(true);
         try {
-            // 0. Seeding Phase: Ensure Vehicles and Batteries exist
-            // This prevents Foreign Key constraints from failing if the logs reference non-existent inventory
-            
+            // Seeding logic remains unchanged
             const uniqueVehicleIds = [...new Set(data.map(r => r.vehicleId).filter(id => id))];
             const uniqueBatteryIds = [...new Set(data.map(r => r.batteryId).filter(id => id))];
 
-            // A. Seed Vehicles
             for (const vid of uniqueVehicleIds) {
-                // Check if vehicle exists locally or in fetched state (optimisation)
-                // We'll trust the DB query for truth
                 const { data: existing } = await supabase.from('vehicles').select('id').eq('id', vid).single();
                 if (!existing) {
                     const row = data.find(r => r.vehicleId === vid);
-                    // Insert placeholder vehicle
                     await supabase.from('vehicles').insert([{
                         id: vid,
                         modelName: 'Imported Vehicle',
                         cityId: row?.cityId || selectedCityId,
-                        status: VehicleStatus.Available, // Status will be fixed by active bookings loop later
+                        status: VehicleStatus.Available,
                         healthStatus: HealthStatus.Good
                     }]);
                 }
             }
 
-            // B. Seed Batteries
             for (const bid of uniqueBatteryIds) {
                 const { data: existing } = await supabase.from('batteries').select('id').eq('id', bid).single();
                 if (!existing) {
@@ -326,8 +319,6 @@ const App: React.FC = () => {
             let processedCount = 0;
             for (const row of data) {
                  if (!row.customerName) continue;
-
-                 // 1. Ensure Customer Exists
                  let customerId;
                  const { data: existingC } = await supabase.from('customers').select('id').eq('name', row.customerName).single();
                  
@@ -345,7 +336,6 @@ const App: React.FC = () => {
                      customerId = newC.id;
                  }
 
-                 // Determine Status
                  let finalStatus = BookingStatus.Active;
                  const s = (row.status || '').toLowerCase();
                  if (s.includes('active') || s.includes('rented')) finalStatus = BookingStatus.Active;
@@ -353,7 +343,6 @@ const App: React.FC = () => {
                  else if (s.includes('pending')) finalStatus = BookingStatus.PendingPayment;
                  else finalStatus = BookingStatus.Returned;
 
-                 // 2. Create Booking
                  const { error: bErr } = await supabase.from('bookings').insert([{
                      customerName: row.customerName,
                      customerPhone: row.customerPhone || '0000000000',
@@ -373,7 +362,6 @@ const App: React.FC = () => {
                  
                  if (bErr) throw bErr;
 
-                 // 3. Update Inventory Status if Active
                  if (finalStatus === BookingStatus.Active && row.vehicleId) {
                      await supabase.from('vehicles').update({ status: 'Rented', batteryId: row.batteryId || null }).eq('id', row.vehicleId);
                      if (row.batteryId) {
@@ -400,42 +388,59 @@ const App: React.FC = () => {
     );
 
     return (
-        <div className="bg-slate-50 min-h-screen text-slate-900">
-            <header className="bg-white/80 backdrop-blur-md border-b sticky top-0 z-40 shadow-sm">
-                <div className="max-w-screen-2xl mx-auto px-6 h-16 flex justify-between items-center">
-                    <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-3">
-                            <YanaLogo className="w-9 h-9" />
-                            <h1 className="font-black text-xl tracking-tight text-slate-900">YANA<span className="text-brand-600">Ops</span></h1>
-                        </div>
-                        {isSyncing && <div className="hidden sm:flex items-center gap-1.5 px-2 py-1 bg-brand-50 rounded-full border border-brand-100 animate-pulse"><div className="w-1.5 h-1.5 bg-brand-500 rounded-full" /><span className="text-[10px] font-bold text-brand-700 uppercase tracking-wider">Syncing</span></div>}
+        <div className="bg-slate-50 min-h-screen text-slate-900 font-sans pb-safe">
+            <style>{`
+                .no-scrollbar::-webkit-scrollbar { display: none; }
+                .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+                .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+            `}</style>
+            
+            {/* Header */}
+            <header className="bg-white/90 backdrop-blur-md border-b border-slate-200/60 sticky top-0 z-40 transition-all duration-300">
+                <div className="max-w-screen-xl mx-auto px-4 h-14 sm:h-16 flex justify-between items-center">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                        <YanaLogo className="w-8 h-8 sm:w-9 sm:h-9" />
+                        <h1 className="font-black text-lg sm:text-xl tracking-tight text-slate-900">YANA<span className="text-brand-600">Ops</span></h1>
                     </div>
                     
-                    <div className="flex items-center gap-4">
-                        {/* Tab Switcher */}
-                        <div className="bg-slate-100 p-1 rounded-lg flex gap-1">
-                            <button onClick={() => setView('operations')} className={`px-4 py-1.5 text-xs font-bold uppercase tracking-tighter rounded-md transition-all ${view === 'operations' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500'}`}>Operations</button>
-                            <button onClick={() => setView('maintenance')} className={`px-4 py-1.5 text-xs font-bold uppercase tracking-tighter rounded-md transition-all ${view === 'maintenance' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500'}`}>Maintenance</button>
-                            <button onClick={() => setView('admin')} className={`px-4 py-1.5 text-xs font-bold uppercase tracking-tighter rounded-md transition-all ${view === 'admin' ? 'bg-white shadow-sm text-slate-900' : 'text-slate-500'}`}>Admin</button>
-                        </div>
-
-                        {/* User Profile */}
-                        <div className="flex items-center gap-3 pl-3 border-l border-slate-200">
-                            <div className="text-right hidden sm:block">
-                                <p className="text-xs font-bold text-slate-900">{currentUser.name}</p>
-                                <p className="text-[10px] text-slate-500 uppercase font-medium tracking-wide">Administrator</p>
-                            </div>
-                            <div className="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center text-slate-500 font-bold text-xs">A</div>
-                        </div>
+                    <div className="flex items-center gap-3">
+                        {isSyncing && <div className="flex items-center gap-1.5 px-2 py-1 bg-brand-50 rounded-full border border-brand-100 animate-pulse"><div className="w-1.5 h-1.5 bg-brand-500 rounded-full" /><span className="text-[10px] font-bold text-brand-700 uppercase tracking-wider hidden sm:inline">Syncing</span></div>}
+                        <div className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 font-bold text-xs ring-2 ring-slate-50">A</div>
+                    </div>
+                </div>
+                
+                {/* Navigation Tabs - Mobile Optimized Segmented Control */}
+                <div className="px-4 pb-3">
+                    <div className="bg-slate-100/80 p-1 rounded-xl flex shadow-inner">
+                        {(['operations', 'maintenance', 'admin'] as const).map(tab => (
+                            <button 
+                                key={tab}
+                                onClick={() => setView(tab)} 
+                                className={`flex-1 py-2 text-[10px] sm:text-xs font-bold uppercase tracking-wide rounded-lg transition-all duration-200 ${view === tab ? 'bg-white text-brand-900 shadow-sm ring-1 ring-black/5 transform scale-[1.02]' : 'text-slate-400 hover:text-slate-600'}`}
+                            >
+                                {tab}
+                            </button>
+                        ))}
                     </div>
                 </div>
             </header>
-            <main className="max-w-screen-2xl mx-auto">
-                {/* City Switcher - Always Visible since Admin is default */}
-                <div className="bg-slate-50 px-6 py-2 border-b sticky top-16 z-30 flex gap-2 overflow-x-auto no-scrollbar items-center">
-                    <span className="text-[10px] font-black uppercase text-slate-400 mr-2 whitespace-nowrap">City Hubs:</span>
-                    {cities.map(c => <button key={c.id} onClick={() => setSelectedCityId(c.id)} className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap ${c.id === selectedCityId ? 'bg-slate-900 text-white shadow-lg' : 'bg-white border text-slate-500 hover:border-slate-300'}`}>{c.name}</button>)}
-                    <button onClick={() => fetchData(true)} className="ml-auto p-1.5 hover:bg-slate-200 rounded-lg text-slate-400 transition-colors"><svg className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg></button>
+
+            <main className="max-w-screen-xl mx-auto">
+                {/* City Switcher - Horizontal Scrollable Chips */}
+                <div className="bg-white/50 backdrop-blur-sm border-b border-slate-200/60 sticky top-[108px] sm:top-[120px] z-30 overflow-x-auto no-scrollbar py-3 px-4 flex gap-2 items-center">
+                    <span className="text-[10px] font-black uppercase text-slate-400 mr-1 whitespace-nowrap">Hub:</span>
+                    {cities.map(c => (
+                        <button 
+                            key={c.id} 
+                            onClick={() => setSelectedCityId(c.id)} 
+                            className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap active:scale-95 ${c.id === selectedCityId ? 'bg-slate-900 text-white shadow-lg shadow-slate-900/20' : 'bg-white border border-slate-200 text-slate-500 hover:border-slate-300'}`}
+                        >
+                            {c.name}
+                        </button>
+                    ))}
+                    <button onClick={() => fetchData(true)} className="ml-auto p-2 bg-white rounded-full border border-slate-200 text-slate-400 hover:text-brand-500 transition-colors shadow-sm active:scale-90">
+                        <svg className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                    </button>
                 </div>
 
                 {view === 'operations' && (

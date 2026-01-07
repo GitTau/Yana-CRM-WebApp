@@ -40,6 +40,26 @@ const addDuration = (dateStr: string, value: number, unit: 'weeks' | 'months') =
     return d.toISOString().split('T')[0];
 };
 
+// Helper to format date as DD-MM-YYYY
+const formatDate = (dateStr: string): string => {
+    if (!dateStr) return '-';
+    // Handle YYYY-MM-DD
+    const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (match) {
+        return `${match[3]}-${match[2]}-${match[1]}`;
+    }
+    // Fallback for ISO strings
+    try {
+        const d = new Date(dateStr);
+        const day = String(d.getDate()).padStart(2, '0');
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const year = d.getFullYear();
+        return `${day}-${month}-${year}`;
+    } catch {
+        return dateStr;
+    }
+};
+
 const getOverdueStats = (booking: Booking) => {
     const today = new Date();
     today.setHours(0,0,0,0);
@@ -55,7 +75,7 @@ const getOverdueStats = (booking: Booking) => {
 };
 
 const Button: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'secondary' | 'danger' | 'warning' | 'ghost' }> = ({ variant = 'primary', className, ...props }) => {
-    const base = "inline-flex items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-sm";
+    const base = "inline-flex items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-sm active:scale-95";
     const variants = {
         primary: "bg-brand-500 text-slate-900 hover:bg-brand-400 shadow-brand-500/20 border border-transparent",
         secondary: "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50",
@@ -67,11 +87,11 @@ const Button: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & { variant
 };
 
 const Input = (props: React.InputHTMLAttributes<HTMLInputElement>) => (
-    <input className="block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 shadow-sm transition-all" {...props} />
+    <input className="block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 shadow-sm transition-all appearance-none" {...props} />
 );
 
 const Select = (props: React.SelectHTMLAttributes<HTMLSelectElement>) => (
-    <select className="block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 shadow-sm transition-all" {...props} />
+    <select className="block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 shadow-sm transition-all appearance-none" {...props} />
 );
 
 const Badge: React.FC<{ color: 'emerald' | 'blue' | 'amber' | 'rose' | 'slate' | 'brand'; children: React.ReactNode; className?: string }> = ({ color, children, className }) => {
@@ -98,30 +118,30 @@ const KPICard: React.FC<{ title: string; value: string | number; icon: React.Rea
     return (
         <div 
             onClick={onClick}
-            className={`bg-white p-5 rounded-2xl shadow-premium border border-slate-200/60 flex flex-col justify-between h-full relative overflow-hidden transition-all ${onClick ? 'cursor-pointer hover:border-slate-300 hover:shadow-premium-hover active:scale-95' : ''}`}
+            className={`bg-white p-4 rounded-2xl shadow-premium border border-slate-200/60 flex flex-col justify-between h-full relative overflow-hidden transition-all ${onClick ? 'cursor-pointer hover:border-slate-300 hover:shadow-premium-hover active:scale-95' : ''}`}
         >
             {warning && <div className="absolute top-0 right-0 p-1.5"><div className="w-3 h-3 bg-rose-500 rounded-full animate-pulse ring-2 ring-white"></div></div>}
-            <div className="flex items-center gap-3 mb-2">
-                <div className={`p-2 rounded-lg ${bgColors[color]}`}>
+            <div className="flex items-center gap-2 mb-2">
+                <div className={`p-1.5 rounded-lg ${bgColors[color]}`}>
                     {icon}
                 </div>
-                <span className="text-xs font-bold uppercase text-slate-400 tracking-wider">{title}</span>
+                <span className="text-[10px] sm:text-xs font-bold uppercase text-slate-400 tracking-wider truncate">{title}</span>
             </div>
-            <p className="text-2xl font-bold text-slate-900">{value}</p>
+            <p className="text-xl sm:text-2xl font-bold text-slate-900">{value}</p>
         </div>
     );
 };
 
 const Modal: React.FC<{ title: string; onClose: () => void; children: React.ReactNode }> = ({ title, onClose, children }) => (
-    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex justify-center items-center p-4 z-50 overflow-y-auto">
-        <div className="bg-white rounded-2xl shadow-2xl border border-slate-100 p-6 sm:p-8 w-full max-w-2xl my-auto flex flex-col relative animate-in fade-in zoom-in duration-200 max-h-[90vh]">
-            <div className="flex justify-between items-center mb-6 sticky top-0 bg-white z-10">
-                <h2 className="text-2xl font-bold text-slate-900 tracking-tight">{title}</h2>
-                <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors cursor-pointer p-1">
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex justify-center items-end sm:items-center p-0 sm:p-4 z-50 animate-in fade-in duration-200">
+        <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl border border-slate-100 w-full max-w-2xl max-h-[90vh] flex flex-col">
+            <div className="flex justify-between items-center p-4 sm:p-6 border-b border-slate-100 sticky top-0 bg-white z-10 rounded-t-2xl">
+                <h2 className="text-lg sm:text-2xl font-bold text-slate-900 tracking-tight">{title}</h2>
+                <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors p-2">
                     <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>
             </div>
-            <div className="overflow-y-auto">
+            <div className="overflow-y-auto p-4 sm:p-8">
                 {children}
             </div>
         </div>
@@ -141,7 +161,7 @@ const ActiveRentalsList: React.FC<{ bookings: Booking[] }> = ({ bookings }) => (
                     <tr key={b.id} className="bg-white hover:bg-slate-50">
                         <td className="px-4 py-3 font-bold">#{b.vehicleId}</td>
                         <td className="px-4 py-3">{b.customerName}<br/><span className="text-[10px] text-slate-400">{b.customerPhone}</span></td>
-                        <td className="px-4 py-3 text-xs">{b.startDate} <span className="text-slate-400">/</span> {b.endDate}</td>
+                        <td className="px-4 py-3 text-xs">{formatDate(b.startDate)} <span className="text-slate-400">/</span> {formatDate(b.endDate)}</td>
                         <td className="px-4 py-3 text-right font-mono font-bold text-slate-700">₹{Math.max(0, (b.totalRent + b.securityDeposit + (b.fineAmount||0)) - b.amountCollected)}</td>
                     </tr>
                 ))}
@@ -229,7 +249,7 @@ const OverdueListModal: React.FC<{ bookings: Booking[]; onClose: () => void }> =
                                             <div className="font-bold text-slate-900">{b.customerName}</div>
                                             <div className="text-xs text-slate-500">{b.customerPhone}</div>
                                         </td>
-                                        <td className="px-4 py-3 text-xs font-mono">{b.endDate}</td>
+                                        <td className="px-4 py-3 text-xs font-mono">{formatDate(b.endDate)}</td>
                                         <td className="px-4 py-3 text-center">
                                             <Badge color="rose">{stats.days} Days</Badge>
                                         </td>
@@ -254,9 +274,6 @@ const OverdueListModal: React.FC<{ bookings: Booking[]; onClose: () => void }> =
         </div>
     );
 };
-
-// ... [Existing Forms: QuickCustomerForm, BatterySwapModal, VehicleSwapModal, SettleDueModal, ReturnRideModal, ExtendRentalForm, BookingForm] ... 
-// (These remain unchanged, re-declaring them briefly for context if needed, but in XML strictly outputting the file content so I will include them fully to be safe as per instructions)
 
 const QuickCustomerForm: React.FC<{ onSubmit: (c: any) => void; onCancel: () => void }> = ({ onSubmit, onCancel }) => {
     const [name, setName] = useState('');
@@ -382,7 +399,7 @@ const ExtendRentalForm: React.FC<{ booking: Booking; rates: Rate[]; onClose: () 
         <div className="space-y-6">
             <div className="flex p-1 bg-slate-100 rounded-lg"><button onClick={() => setUnit('weeks')} className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${unit === 'weeks' ? 'bg-white shadow-sm text-brand-600' : 'text-slate-500'}`}>Weeks</button><button onClick={() => setUnit('months')} className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${unit === 'months' ? 'bg-white shadow-sm text-brand-600' : 'text-slate-500'}`}>Months</button></div>
             <div className="space-y-1"><label className="text-xs font-bold text-slate-500 uppercase">Extend By</label><div className="flex items-center gap-3"><button onClick={() => setDuration(Math.max(1, duration - 1))} className="p-2 rounded-lg bg-slate-200 hover:bg-slate-300 font-bold">-</button><span className="flex-1 text-center font-bold text-lg">{duration} {unit === 'weeks' ? 'Week(s)' : 'Month(s)'}</span><button onClick={() => setDuration(duration + 1)} className="p-2 rounded-lg bg-slate-200 hover:bg-slate-300 font-bold">+</button></div></div>
-            <div className="p-4 bg-brand-50 rounded-xl border border-brand-200 text-center space-y-2"><div><span className="text-xs text-brand-600 font-bold uppercase">New Expiry Date</span><p className="text-lg font-bold text-slate-900">{newEndDate}</p></div><div className="pt-2 border-t border-brand-200"><span className="text-xs text-brand-600 font-bold uppercase">Extra Rent to Collect</span><p className="text-2xl font-black text-brand-800">₹{extraRent}</p></div></div>
+            <div className="p-4 bg-brand-50 rounded-xl border border-brand-200 text-center space-y-2"><div><span className="text-xs text-brand-600 font-bold uppercase">New Expiry Date</span><p className="text-lg font-bold text-slate-900">{formatDate(newEndDate)}</p></div><div className="pt-2 border-t border-brand-200"><span className="text-xs text-brand-600 font-bold uppercase">Extra Rent to Collect</span><p className="text-2xl font-black text-brand-800">₹{extraRent}</p></div></div>
             <Button onClick={() => onSubmit(extraRent, extraRent, newEndDate)} className="w-full">Confirm Extension</Button>
         </div>
     );
@@ -411,7 +428,7 @@ const BookingForm: React.FC<{ cityId: number; rates: Rate[]; vehicles: Vehicle[]
             <div className="flex gap-2"><Select value={customerId} onChange={e => setCustomerId(Number(e.target.value))} required className="flex-1"><option value="">Select Rider</option>{customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</Select><Button type="button" variant="secondary" onClick={onAddNewCustomer} className="px-3" title="Add New Rider"><UserGroupIcon className="w-5 h-5 text-brand-600"/></Button></div>
             <div className="grid grid-cols-2 gap-2"><Select value={vehicleId} onChange={e => setVehicleId(Number(e.target.value))} required><option value="">Bike</option>{vehicles.filter(v => v.cityId === cityId && v.status === VehicleStatus.Available).map(v => <option key={v.id} value={v.id}>{v.modelName} (#{v.id})</option>)}</Select><Select value={batteryId} onChange={e => setBatteryId(Number(e.target.value))}><option value="">Battery (Opt)</option>{batteries.filter(b => b.cityId === cityId && b.status === BatteryStatus.Available).map(b => <option key={b.id} value={b.id}>{b.serialNumber}</option>)}</Select></div>
             <Select value={rateId} onChange={e => setRateId(Number(e.target.value))} required><option value="">Select Rate Plan</option>{rates.filter(r => r.cityId === cityId).map(r => <option key={r.id} value={r.id}>{r.clientName || 'General'} (Daily: ₹{r.dailyRent} {r.monthlyRent ? `/ Monthly: ₹${r.monthlyRent}` : ''})</option>)}</Select>
-            <div className="p-4 bg-slate-50 rounded-xl space-y-4 border border-slate-100"><div><label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Start Date</label><Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} required /></div><div><label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Duration</label><div className="flex gap-2"><div className="flex bg-white border border-slate-200 rounded-lg p-1"><button type="button" onClick={() => setUnit('weeks')} className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${unit === 'weeks' ? 'bg-slate-900 text-white' : 'text-slate-500'}`}>Weeks</button><button type="button" onClick={() => setUnit('months')} className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${unit === 'months' ? 'bg-slate-900 text-white' : 'text-slate-500'}`}>Months</button></div><input type="number" min="1" value={duration} onChange={e => setDuration(Number(e.target.value))} className="flex-1 block w-full rounded-lg border border-slate-200 bg-white px-3 py-1 text-sm text-center font-bold" /></div></div><div className="flex justify-between items-center pt-2 border-t border-slate-200"><span className="text-xs font-bold text-slate-500 uppercase">Ends On</span><span className="text-sm font-bold text-slate-900">{endDate}</span></div></div>
+            <div className="p-4 bg-slate-50 rounded-xl space-y-4 border border-slate-100"><div><label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Start Date</label><Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} required /></div><div><label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Duration</label><div className="flex gap-2"><div className="flex bg-white border border-slate-200 rounded-lg p-1"><button type="button" onClick={() => setUnit('weeks')} className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${unit === 'weeks' ? 'bg-slate-900 text-white' : 'text-slate-500'}`}>Weeks</button><button type="button" onClick={() => setUnit('months')} className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${unit === 'months' ? 'bg-slate-900 text-white' : 'text-slate-500'}`}>Months</button></div><input type="number" min="1" value={duration} onChange={e => setDuration(Number(e.target.value))} className="flex-1 block w-full rounded-lg border border-slate-200 bg-white px-3 py-1 text-sm text-center font-bold" /></div></div><div className="flex justify-between items-center pt-2 border-t border-slate-200"><span className="text-xs font-bold text-slate-500 uppercase">Ends On</span><span className="text-sm font-bold text-slate-900">{formatDate(endDate)}</span></div></div>
             {selectedRate && (<div className="p-4 bg-brand-50 rounded-xl space-y-2 border border-brand-100"><div className="flex justify-between text-xs text-brand-800"><span>Rent ({duration} {unit})</span><span>₹{calc.rent}</span></div><div className="flex justify-between text-xs text-brand-800"><span>Security Deposit</span><span>₹{calc.deposit}</span></div><div className="flex justify-between font-black text-slate-900 border-t border-brand-200 pt-2 text-lg"><span>Total Payable</span><span>₹{calc.total}</span></div></div>)}
             <Input type="number" placeholder="Amount Collecting Now (₹)" value={collected} onChange={e => setCollected(Number(e.target.value))} />
             <Button type="submit" className="w-full">Create Booking</Button>
@@ -468,62 +485,63 @@ export const OperationsPanel: React.FC<OperationsPanelProps> = (props) => {
     const overdueCount = activeCityBookings.filter(b => getOverdueStats(b).days > 0).length;
 
     return (
-        <div className="p-4 sm:p-6 lg:p-8 space-y-6 bg-slate-50 min-h-screen">
+        <div className="p-4 sm:p-6 space-y-6 bg-slate-50 min-h-screen">
             <div className="flex flex-col sm:flex-row justify-between items-end sm:items-center gap-4 bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
-                <h2 className="text-lg font-bold text-slate-900">Operations Dashboard</h2>
-                <div className="flex items-center gap-2"><span className="text-xs font-bold uppercase text-slate-400">Filter By Date:</span><Input type="date" value={dateRange.start} onChange={e => setDateRange(p => ({...p, start: e.target.value}))} className="w-auto py-1" /><span className="text-slate-400">-</span><Input type="date" value={dateRange.end} onChange={e => setDateRange(p => ({...p, end: e.target.value}))} className="w-auto py-1" />{(dateRange.start || dateRange.end) && (<button onClick={() => setDateRange({ start: '', end: '' })} className="text-xs font-bold text-rose-500 hover:underline">Clear</button>)}</div>
+                <h2 className="text-lg font-bold text-slate-900 hidden sm:block">Operations Dashboard</h2>
+                <div className="flex items-center gap-2 w-full sm:w-auto"><span className="text-xs font-bold uppercase text-slate-400 whitespace-nowrap">Filter Date:</span><Input type="date" value={dateRange.start} onChange={e => setDateRange(p => ({...p, start: e.target.value}))} className="w-auto py-1 flex-1 sm:flex-none" /><span className="text-slate-400">-</span><Input type="date" value={dateRange.end} onChange={e => setDateRange(p => ({...p, end: e.target.value}))} className="w-auto py-1 flex-1 sm:flex-none" />{(dateRange.start || dateRange.end) && (<button onClick={() => setDateRange({ start: '', end: '' })} className="text-xs font-bold text-rose-500 hover:underline">Clear</button>)}</div>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
                 <KPICard 
                     title="Active Rentals" 
                     value={activeRentalsCount} 
-                    icon={<BikeIcon className="w-6 h-6"/>} 
+                    icon={<BikeIcon className="w-5 h-5"/>} 
                     color="brand" 
                     onClick={() => setShowActiveRentals(true)}
                 />
                 <KPICard 
-                    title="Available Bikes" 
+                    title="Bikes Ready" 
                     value={availableBikesList.length} 
-                    icon={<BikeIcon className="w-6 h-6"/>} 
+                    icon={<BikeIcon className="w-5 h-5"/>} 
                     color="blue" 
                     onClick={() => setShowAvailableBikes(true)}
                 />
                 <KPICard 
-                    title="Available Batteries" 
+                    title="Batteries" 
                     value={availableBatteriesList.length} 
-                    icon={<BoltIcon className="w-6 h-6"/>} 
+                    icon={<BoltIcon className="w-5 h-5"/>} 
                     color="amber" 
                     onClick={() => setShowAvailableBatteries(true)}
                 />
                 <KPICard 
                     title="Pending Dues" 
                     value={`₹${pendingDuesTotal}`} 
-                    icon={<MoneyIcon className="w-6 h-6"/>} 
+                    icon={<MoneyIcon className="w-5 h-5"/>} 
                     color="rose" 
                     onClick={() => setShowOverdueModal(true)}
                     warning={overdueCount > 0}
                 />
                 <KPICard 
-                    title="Active Customers" 
+                    title="Customers" 
                     value={totalCustomersCount} 
-                    icon={<UserGroupIcon className="w-6 h-6"/>} 
+                    icon={<UserGroupIcon className="w-5 h-5"/>} 
                     color="emerald" 
                     onClick={() => setShowActiveCustomers(true)}
                 />
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <Button variant="primary" onClick={() => setShowBookingModal(true)} className="w-full py-4 text-sm flex flex-col items-center gap-2 h-auto shadow-md"><BikeIcon className="w-6 h-6 opacity-70"/><span>New Rental</span></Button>
-                <Button variant="primary" onClick={() => setShowQuickCustomerModal(true)} className="w-full py-4 text-sm flex flex-col items-center gap-2 h-auto shadow-md"><UserGroupIcon className="w-6 h-6 opacity-70"/><span>Register Rider</span></Button>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+                <Button variant="primary" onClick={() => setShowBookingModal(true)} className="w-full py-4 text-sm flex flex-col items-center gap-2 h-auto shadow-md hover:shadow-lg"><BikeIcon className="w-6 h-6 opacity-70"/><span>New Rental</span></Button>
+                <Button variant="primary" onClick={() => setShowQuickCustomerModal(true)} className="w-full py-4 text-sm flex flex-col items-center gap-2 h-auto shadow-md hover:shadow-lg"><UserGroupIcon className="w-6 h-6 opacity-70"/><span>Register Rider</span></Button>
                 <Button variant="secondary" onClick={() => setShowBatteryModal(true)} className="w-full py-4 text-sm flex flex-col items-center gap-2 h-auto"><BoltIcon className="w-6 h-6 text-slate-400"/><span>Battery Swap</span></Button>
                 <Button variant="secondary" onClick={() => setShowVehicleSwapModal(true)} className="w-full py-4 text-sm flex flex-col items-center gap-2 h-auto"><ArrowPathIcon className="w-6 h-6 text-slate-400"/><span>Vehicle Swap</span></Button>
             </div>
 
             <div className="space-y-4">
-                <div className="flex justify-between items-center"><h2 className="text-xl font-bold">Rental Log {dateRange.start ? '(Filtered)' : '(All Time)'}</h2></div>
-                <div className="bg-white rounded-2xl shadow-premium border overflow-hidden">
-                    <div className="overflow-x-auto">
+                <div className="flex justify-between items-center px-1"><h2 className="text-lg font-bold">Rental Log {dateRange.start ? '(Filtered)' : ''}</h2></div>
+                <div className="bg-white rounded-2xl shadow-premium border border-slate-100 overflow-hidden">
+                    {/* Desktop View */}
+                    <div className="hidden sm:block overflow-x-auto">
                         <table className="w-full text-sm text-left">
                             <thead className="bg-slate-50 text-slate-500 uppercase text-[10px] font-bold"><tr><th className="px-6 py-4">Status</th><th className="px-6 py-4">Bike</th><th className="px-6 py-4">Rider</th><th className="px-6 py-4">Start / End</th><th className="px-6 py-4">Due</th><th className="px-6 py-4 text-right">Actions</th></tr></thead>
                             <tbody className="divide-y divide-slate-100">
@@ -533,23 +551,23 @@ export const OperationsPanel: React.FC<OperationsPanelProps> = (props) => {
                                     const overdue = getOverdueStats(booking);
                                     
                                     return (
-                                        <tr key={booking.id} className={overdue.days > 0 ? 'bg-rose-50' : (!isActive ? 'opacity-60 bg-slate-50/50' : '')}>
+                                        <tr key={booking.id} className={overdue.days > 0 ? 'bg-rose-50' : (!isActive ? 'opacity-60 bg-slate-50/50' : 'hover:bg-slate-50 transition-colors')}>
                                             <td className="px-6 py-4"><Badge color={booking.status === 'Paused' ? 'amber' : booking.status === 'Active' ? 'brand' : 'slate'}>{booking.status}</Badge></td>
                                             <td className="px-6 py-4 font-bold">#{booking.vehicleId}</td>
-                                            <td className="px-6 py-4">{booking.customerName}</td>
+                                            <td className="px-6 py-4 font-medium">{booking.customerName}</td>
                                             <td className="px-6 py-4 text-xs">
-                                                {booking.startDate} <span className="text-slate-400">/</span> {booking.endDate}
+                                                {formatDate(booking.startDate)} <span className="text-slate-400">/</span> {formatDate(booking.endDate)}
                                                 {overdue.days > 0 && <span className="block mt-1 text-[9px] font-bold text-rose-600 bg-rose-100 px-1 rounded w-fit">LATE: {overdue.days} DAYS</span>}
                                             </td>
-                                            <td className="px-6 py-4 font-black text-rose-600">₹{pending}</td>
+                                            <td className="px-6 py-4 font-black text-slate-900">₹{pending}</td>
                                             <td className="px-6 py-4 text-right space-x-2">
                                                 {booking.status === 'Paused' ? <Button onClick={() => setShowResumeModal(booking.id)}>Resume</Button> : (
                                                     isActive ? (
                                                         <>
-                                                            <button onClick={() => setShowSettleModal(booking.id)} className="text-emerald-600 font-bold text-xs uppercase">Pay</button>
-                                                            <button onClick={() => setShowExtendModal(booking.id)} className="text-brand-600 font-bold text-xs uppercase">Ext</button>
-                                                            <button onClick={() => setShowPauseModal(booking.id)} className="text-amber-600 font-bold text-xs uppercase">Pause</button>
-                                                            <Button variant="secondary" onClick={() => setShowReturnModal(booking.id)} className="text-xs">End</Button>
+                                                            <button onClick={() => setShowSettleModal(booking.id)} className="text-emerald-600 font-bold text-xs uppercase hover:underline">Pay</button>
+                                                            <button onClick={() => setShowExtendModal(booking.id)} className="text-brand-600 font-bold text-xs uppercase hover:underline">Ext</button>
+                                                            <button onClick={() => setShowPauseModal(booking.id)} className="text-amber-600 font-bold text-xs uppercase hover:underline">Pause</button>
+                                                            <Button variant="secondary" onClick={() => setShowReturnModal(booking.id)} className="text-xs ml-2">End</Button>
                                                         </>
                                                     ) : (
                                                         <span className="text-xs italic text-slate-400">Closed</span>
@@ -559,9 +577,59 @@ export const OperationsPanel: React.FC<OperationsPanelProps> = (props) => {
                                         </tr>
                                     );
                                 })}
-                                {filteredCityBookings.length === 0 && (<tr><td colSpan={6} className="px-6 py-8 text-center text-slate-400 italic">No bookings found for this period.</td></tr>)}
+                                {filteredCityBookings.length === 0 && (<tr><td colSpan={6} className="px-6 py-12 text-center text-slate-400 italic">No bookings found for this period.</td></tr>)}
                             </tbody>
                         </table>
+                    </div>
+
+                    {/* Mobile View - Cards */}
+                    <div className="sm:hidden p-4 space-y-3">
+                        {filteredCityBookings.map(booking => {
+                            const pending = Math.max(0, (booking.totalRent + booking.securityDeposit + (booking.fineAmount || 0)) - booking.amountCollected);
+                            const isActive = booking.status === BookingStatus.Active || booking.status === BookingStatus.Paused;
+                            const overdue = getOverdueStats(booking);
+
+                            return (
+                                <div key={booking.id} className={`p-4 rounded-xl border ${overdue.days > 0 ? 'bg-rose-50 border-rose-200' : 'bg-white border-slate-100'} shadow-sm`}>
+                                    <div className="flex justify-between items-start mb-3">
+                                        <div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-bold text-slate-900">Bike #{booking.vehicleId}</span>
+                                                <Badge color={booking.status === 'Paused' ? 'amber' : booking.status === 'Active' ? 'brand' : 'slate'}>{booking.status}</Badge>
+                                            </div>
+                                            <p className="text-xs text-slate-500 mt-1">{booking.customerName}</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <span className="block text-lg font-black text-slate-900">₹{pending}</span>
+                                            <span className="text-[10px] text-slate-400 uppercase font-bold">Due</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="flex justify-between items-center text-xs text-slate-500 border-t border-slate-100 pt-3 mb-3">
+                                        <span>{formatDate(booking.startDate)} - {formatDate(booking.endDate)}</span>
+                                        {overdue.days > 0 && <span className="font-bold text-rose-600 bg-rose-100 px-1.5 py-0.5 rounded">LATE {overdue.days}D</span>}
+                                    </div>
+
+                                    {isActive ? (
+                                        <div className="grid grid-cols-4 gap-2">
+                                            {booking.status === 'Paused' ? (
+                                                <button onClick={() => setShowResumeModal(booking.id)} className="col-span-4 bg-brand-500 text-white font-bold py-2 rounded-lg text-xs">Resume Rental</button>
+                                            ) : (
+                                                <>
+                                                    <button onClick={() => setShowSettleModal(booking.id)} className="bg-emerald-50 text-emerald-700 font-bold py-2 rounded-lg text-xs border border-emerald-100">Pay</button>
+                                                    <button onClick={() => setShowExtendModal(booking.id)} className="bg-brand-50 text-brand-700 font-bold py-2 rounded-lg text-xs border border-brand-100">Ext</button>
+                                                    <button onClick={() => setShowPauseModal(booking.id)} className="bg-amber-50 text-amber-700 font-bold py-2 rounded-lg text-xs border border-amber-100">Pause</button>
+                                                    <button onClick={() => setShowReturnModal(booking.id)} className="bg-slate-100 text-slate-700 font-bold py-2 rounded-lg text-xs border border-slate-200">End</button>
+                                                </>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <div className="text-center text-xs text-slate-400 font-medium italic bg-slate-50 py-2 rounded-lg">Rental Closed</div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                        {filteredCityBookings.length === 0 && <div className="text-center text-slate-400 py-8 italic">No bookings found.</div>}
                     </div>
                 </div>
             </div>
@@ -570,9 +638,11 @@ export const OperationsPanel: React.FC<OperationsPanelProps> = (props) => {
             {showQuickCustomerModal && <Modal title="Quick Rider Registration" onClose={() => setShowQuickCustomerModal(false)}><QuickCustomerForm onSubmit={(c) => { props.addCustomer({ ...c, cityId: props.selectedCityId }); setShowQuickCustomerModal(false); }} onCancel={() => setShowQuickCustomerModal(false)} /></Modal>}
             {showBatteryModal && <Modal title="Battery Swap Service" onClose={() => setShowBatteryModal(false)}><BatterySwapModal selectedCityId={props.selectedCityId} bookings={props.bookings} batteries={props.batteries} onClose={() => setShowBatteryModal(false)} onSwap={props.changeBatteryForBooking} /></Modal>}
             {showVehicleSwapModal && <Modal title="Vehicle Swap Service" onClose={() => setShowVehicleSwapModal(false)}><VehicleSwapModal selectedCityId={props.selectedCityId} bookings={props.bookings} vehicles={props.vehicles} onClose={() => setShowVehicleSwapModal(false)} onSwap={(bid, vid, reason, fine) => props.swapVehicleForBooking(bid, vid, reason, {}, fine)} /></Modal>}
-            {showSettleModal && <Modal title="Collect Payment" onClose={() => setShowSettleModal(null)}>{(() => { const b = props.bookings.find(x => x.id === showSettleModal); return b ? <SettleDueModal booking={b} onClose={() => setShowSettleModal(null)} onConfirm={(a, e, er) => props.settleBookingDue(b.id, a, e, er)} /> : null; })()}</Modal>}
-            {showExtendModal && <Modal title="Extend Ride" onClose={() => setShowExtendModal(null)}>{(() => { const b = props.bookings.find(x => x.id === showExtendModal); return b ? <ExtendRentalForm booking={b} rates={props.rates} onClose={() => setShowExtendModal(null)} onSubmit={(er, a, e) => props.extendBooking(b.id, er, a, e)} /> : null; })()}</Modal>}
-            {showReturnModal && <Modal title="End Rental" onClose={() => setShowReturnModal(null)}>{(() => { const b = props.bookings.find(x => x.id === showReturnModal); return b ? <ReturnRideModal booking={b} onClose={() => setShowReturnModal(null)} onConfirm={d => props.updateBookingStatus(b.id, BookingStatus.Returned, d)} /> : null; })()}</Modal>}
+            
+            {showSettleModal && <Modal title="Collect Payment" onClose={() => setShowSettleModal(null)}>{(() => { const b = props.bookings.find(x => x.id === showSettleModal); return b ? <SettleDueModal booking={b} onClose={() => setShowSettleModal(null)} onConfirm={(a, e, er) => { props.settleBookingDue(b.id, a, e, er); setShowSettleModal(null); }} /> : null; })()}</Modal>}
+            {showExtendModal && <Modal title="Extend Ride" onClose={() => setShowExtendModal(null)}>{(() => { const b = props.bookings.find(x => x.id === showExtendModal); return b ? <ExtendRentalForm booking={b} rates={props.rates} onClose={() => setShowExtendModal(null)} onSubmit={(er, a, e) => { props.extendBooking(b.id, er, a, e); setShowExtendModal(null); }} /> : null; })()}</Modal>}
+            {showReturnModal && <Modal title="End Rental" onClose={() => setShowReturnModal(null)}>{(() => { const b = props.bookings.find(x => x.id === showReturnModal); return b ? <ReturnRideModal booking={b} onClose={() => setShowReturnModal(null)} onConfirm={d => { props.updateBookingStatus(b.id, BookingStatus.Returned, d); setShowReturnModal(null); }} /> : null; })()}</Modal>}
+            
             {showPauseModal && <Modal title="Pause Ride" onClose={() => setShowPauseModal(null)}><div className="space-y-4"><Input placeholder="Reason..." id="pause-reason" /><Button onClick={() => { const r = (document.getElementById('pause-reason') as HTMLInputElement).value; if (showPauseModal) props.pauseBooking(showPauseModal, r); setShowPauseModal(null); }} className="w-full">Confirm Pause</Button></div></Modal>}
             {showResumeModal && <Modal title="Resume Ride" onClose={() => setShowResumeModal(null)}><div className="space-y-4"><Select id="res-v">{props.vehicles.filter(v => v.cityId === props.selectedCityId && v.status === VehicleStatus.Available).map(v => <option key={v.id} value={v.id}>{v.modelName}</option>)}</Select><Select id="res-b">{props.batteries.filter(b => b.cityId === props.selectedCityId && b.status === BatteryStatus.Available).map(b => <option key={b.id} value={b.id}>{b.serialNumber}</option>)}</Select><Button onClick={() => { const v = Number((document.getElementById('res-v') as HTMLSelectElement).value); const b = Number((document.getElementById('res-b') as HTMLSelectElement).value); if (showResumeModal) props.resumeBooking(showResumeModal, v, b); setShowResumeModal(null); }} className="w-full">Resume Rental</Button></div></Modal>}
             
