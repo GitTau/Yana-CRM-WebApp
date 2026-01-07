@@ -49,6 +49,26 @@ const matchEnum = <T extends string>(value: string, enumObj: Record<string, T>, 
     return found || defaultValue;
 };
 
+// Helper to format date as DD-MM-YYYY
+const formatDate = (dateStr: string): string => {
+    if (!dateStr) return '-';
+    // Handle YYYY-MM-DD
+    const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (match) {
+        return `${match[3]}-${match[2]}-${match[1]}`;
+    }
+    // Fallback for ISO strings
+    try {
+        const d = new Date(dateStr);
+        const day = String(d.getDate()).padStart(2, '0');
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const year = d.getFullYear();
+        return `${day}-${month}-${year}`;
+    } catch {
+        return dateStr;
+    }
+};
+
 const downloadCSV = (data: any[], filename: string) => {
     if (!data || !data.length) return;
     const headers = Object.keys(data[0]).join(',');
@@ -67,21 +87,23 @@ const downloadCSV = (data: any[], filename: string) => {
 // --- Reusable UI Components ---
 
 const Modal: React.FC<{ title: string; onClose: () => void; children: React.ReactNode }> = ({ title, onClose, children }) => (
-    <div className="fixed inset-0 bg-slate-900/30 backdrop-blur-sm flex justify-center items-center p-4 z-50 animate-in fade-in duration-200">
-        <div className="bg-white rounded-2xl shadow-2xl border border-slate-100 p-8 w-full max-w-4xl max-h-[90vh] flex flex-col">
-            <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
-                <h2 className="text-2xl font-bold text-slate-900 tracking-tight">{title}</h2>
-                <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors">
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex justify-center items-end sm:items-center p-0 sm:p-4 z-50 animate-in fade-in duration-200">
+        <div className="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl border border-slate-100 w-full max-w-4xl max-h-[90vh] flex flex-col">
+            <div className="flex justify-between items-center p-4 sm:p-6 border-b border-slate-100 sticky top-0 bg-white z-10 rounded-t-2xl">
+                <h2 className="text-lg sm:text-2xl font-bold text-slate-900 tracking-tight">{title}</h2>
+                <button onClick={onClose} className="text-slate-400 hover:text-slate-600 transition-colors p-2">
                     <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                 </button>
             </div>
-            {children}
+            <div className="overflow-y-auto p-4 sm:p-8">
+                {children}
+            </div>
         </div>
     </div>
 );
 
 const Button: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'secondary' | 'danger' | 'ghost' }> = ({ variant = 'primary', className, ...props }) => {
-    const base = "inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed";
+    const base = "inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95";
     const variants = {
         primary: "bg-slate-900 text-white hover:bg-slate-800 shadow-lg shadow-slate-900/20",
         secondary: "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 shadow-sm",
@@ -157,7 +179,7 @@ const RevenueChart: React.FC<{ bookings: Booking[] }> = ({ bookings }) => {
                 <polyline fill="none" stroke="#00EAFF" strokeWidth="2" points={points} vectorEffect="non-scaling-stroke" />
             </svg>
             <div className="flex justify-between mt-2 border-t border-slate-100 pt-2 text-[10px] text-slate-400 font-bold uppercase">
-                {dataPoints.map(d => <span key={d.date}>{d.date.slice(5)}</span>)}
+                {dataPoints.map(d => <span key={d.date}>{formatDate(d.date).slice(0, 5)}</span>)}
             </div>
         </div>
     );
@@ -189,43 +211,43 @@ const DashboardView: React.FC<{ bookings: Booking[], vehicles: Vehicle[], custom
     return (
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-end sm:items-center gap-4 bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
-                <h2 className="text-lg font-bold text-slate-900">Dashboard Overview</h2>
-                <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold uppercase text-slate-400">Filter Date:</span>
-                    <Input type="date" value={dateRange.start} onChange={e => setDateRange(p => ({...p, start: e.target.value}))} className="w-auto py-1" />
+                <h2 className="text-lg font-bold text-slate-900 hidden sm:block">Dashboard Overview</h2>
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <span className="text-xs font-bold uppercase text-slate-400 whitespace-nowrap">Filter Date:</span>
+                    <Input type="date" value={dateRange.start} onChange={e => setDateRange(p => ({...p, start: e.target.value}))} className="w-auto py-1 flex-1 sm:flex-none" />
                     <span className="text-slate-400">-</span>
-                    <Input type="date" value={dateRange.end} onChange={e => setDateRange(p => ({...p, end: e.target.value}))} className="w-auto py-1" />
+                    <Input type="date" value={dateRange.end} onChange={e => setDateRange(p => ({...p, end: e.target.value}))} className="w-auto py-1 flex-1 sm:flex-none" />
                     {(dateRange.start || dateRange.end) && (
                         <button onClick={() => setDateRange({ start: '', end: '' })} className="text-xs font-bold text-rose-500 hover:underline">Clear</button>
                     )}
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
                 {[
                     { title: 'Total Revenue', value: `₹${totalRevenue.toLocaleString()}`, color: 'brand', icon: <MoneyIcon className="w-5 h-5"/> },
-                    { title: 'Fleet Utilization', value: `${utilization}%`, color: 'blue', icon: <ChartBarIcon className="w-5 h-5"/> },
+                    { title: 'Utilization', value: `${utilization}%`, color: 'blue', icon: <ChartBarIcon className="w-5 h-5"/> },
                     { title: 'Active Rentals', value: activeRentals, color: 'emerald', icon: <BikeIcon className="w-5 h-5"/> },
                     { title: 'Pending Dues', value: `₹${pendingDues.toLocaleString()}`, color: 'rose', icon: <MoneyIcon className="w-5 h-5"/> },
                 ].map((stat, i) => (
-                    <div key={i} className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
-                        <div className="flex items-center gap-3 mb-2">
-                             <div className={`p-2 rounded-lg bg-${stat.color}-50 text-${stat.color}-600`}>{stat.icon}</div>
-                             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">{stat.title}</span>
+                    <div key={i} className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="flex items-center gap-2 sm:gap-3 mb-2">
+                             <div className={`p-1.5 sm:p-2 rounded-lg bg-${stat.color}-50 text-${stat.color}-600`}>{stat.icon}</div>
+                             <span className="text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider truncate">{stat.title}</span>
                         </div>
-                        <p className="text-2xl font-black text-slate-900">{stat.value}</p>
+                        <p className="text-lg sm:text-2xl font-black text-slate-900">{stat.value}</p>
                     </div>
                 ))}
             </div>
             {/* Charts and Tables */}
              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+                <div className="lg:col-span-2 bg-white p-4 sm:p-6 rounded-2xl border border-slate-100 shadow-sm">
                     <div className="flex justify-between items-center mb-6">
                         <h3 className="font-bold text-slate-900">Revenue Trend (Selected Period)</h3>
                     </div>
                     <RevenueChart bookings={filteredBookings} />
                 </div>
-                <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+                <div className="bg-white p-4 sm:p-6 rounded-2xl border border-slate-100 shadow-sm">
                     <h3 className="font-bold text-slate-900 mb-6">Fleet Composition</h3>
                     <div className="space-y-6">
                         {[
@@ -414,7 +436,7 @@ const ManageBookingsModal: React.FC<{ bookings: Booking[]; onClose: () => void; 
 
     return (
         <Modal title="Manage Booking Logs" onClose={onClose}>
-            <div className="h-[70vh] overflow-y-auto">
+            <div className="h-[70vh] overflow-y-auto pb-safe">
                 {editingId ? (
                     <div className="space-y-4 max-w-lg mx-auto">
                          <div className="flex justify-between items-center mb-4">
@@ -447,29 +469,54 @@ const ManageBookingsModal: React.FC<{ bookings: Booking[]; onClose: () => void; 
                          <Button onClick={handleSave} className="w-full">Save Changes</Button>
                     </div>
                 ) : (
-                    <table className="w-full text-sm text-left">
-                        <TableHeader headers={['ID', 'Customer', 'Vehicle', 'Status', 'Dates', 'Financials', 'Actions']} />
-                        <tbody className="divide-y divide-slate-50">
+                    <>
+                        <div className="hidden sm:block">
+                            <table className="w-full text-sm text-left">
+                                <TableHeader headers={['ID', 'Customer', 'Vehicle', 'Status', 'Dates', 'Financials', 'Actions']} />
+                                <tbody className="divide-y divide-slate-50">
+                                    {bookings.map(b => (
+                                        <tr key={b.id}>
+                                            <td className="px-6 py-4 font-mono text-xs text-slate-400">#{b.id}</td>
+                                            <td className="px-6 py-4 font-bold">{b.customerName}</td>
+                                            <td className="px-6 py-4 text-slate-600">#{b.vehicleId}</td>
+                                            <td className="px-6 py-4"><Badge color={b.status === 'Active' ? 'brand' : b.status === 'Returned' ? 'emerald' : 'amber'}>{b.status}</Badge></td>
+                                            <td className="px-6 py-4 text-xs">{formatDate(b.startDate)} <br/> {formatDate(b.endDate)}</td>
+                                            <td className="px-6 py-4 text-xs">
+                                                Rent: ₹{b.totalRent}<br/>
+                                                Coll: ₹{b.amountCollected}<br/>
+                                                Due: <span className="text-rose-600 font-bold">₹{Math.max(0, (b.totalRent + b.securityDeposit + (b.fineAmount || 0)) - (b.amountCollected || 0))}</span>
+                                            </td>
+                                            <td className="px-6 py-4 space-x-2">
+                                                <button onClick={() => handleEdit(b)} className="text-brand-600 font-bold text-xs hover:underline">Edit</button>
+                                                <button onClick={() => handleDelete(b.id)} className="text-rose-600 font-bold text-xs hover:underline">Delete</button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div className="sm:hidden space-y-3">
                             {bookings.map(b => (
-                                <tr key={b.id}>
-                                    <td className="px-6 py-4 font-mono text-xs text-slate-400">#{b.id}</td>
-                                    <td className="px-6 py-4 font-bold">{b.customerName}</td>
-                                    <td className="px-6 py-4 text-slate-600">#{b.vehicleId}</td>
-                                    <td className="px-6 py-4"><Badge color={b.status === 'Active' ? 'brand' : b.status === 'Returned' ? 'emerald' : 'amber'}>{b.status}</Badge></td>
-                                    <td className="px-6 py-4 text-xs">{b.startDate} <br/> {b.endDate}</td>
-                                    <td className="px-6 py-4 text-xs">
-                                        Rent: ₹{b.totalRent}<br/>
-                                        Coll: ₹{b.amountCollected}<br/>
-                                        Due: <span className="text-rose-600 font-bold">₹{Math.max(0, (b.totalRent + b.securityDeposit + (b.fineAmount || 0)) - (b.amountCollected || 0))}</span>
-                                    </td>
-                                    <td className="px-6 py-4 space-x-2">
-                                        <button onClick={() => handleEdit(b)} className="text-brand-600 font-bold text-xs hover:underline">Edit</button>
-                                        <button onClick={() => handleDelete(b.id)} className="text-rose-600 font-bold text-xs hover:underline">Delete</button>
-                                    </td>
-                                </tr>
+                                <div key={b.id} className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                                    <div className="flex justify-between items-start mb-2">
+                                        <div>
+                                            <span className="text-xs font-black text-slate-400">#{b.id}</span>
+                                            <p className="font-bold text-slate-900">{b.customerName}</p>
+                                        </div>
+                                        <Badge color={b.status === 'Active' ? 'brand' : b.status === 'Returned' ? 'emerald' : 'amber'}>{b.status}</Badge>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2 text-xs text-slate-600 mb-3">
+                                        <div>Bike: <b>#{b.vehicleId}</b></div>
+                                        <div>Due: <span className="text-rose-600 font-bold">₹{Math.max(0, (b.totalRent + b.securityDeposit + (b.fineAmount || 0)) - (b.amountCollected || 0))}</span></div>
+                                    </div>
+                                    <div className="flex justify-end gap-3 pt-2 border-t border-slate-200">
+                                        <button onClick={() => handleEdit(b)} className="text-brand-600 font-bold text-xs">Edit</button>
+                                        <button onClick={() => handleDelete(b.id)} className="text-rose-600 font-bold text-xs">Delete</button>
+                                    </div>
+                                </div>
                             ))}
-                        </tbody>
-                    </table>
+                        </div>
+                    </>
                 )}
             </div>
         </Modal>
@@ -494,21 +541,41 @@ const CustomerHistoryModal: React.FC<{ customer: Customer; bookings: Booking[]; 
                     <div className="bg-brand-50 p-4 rounded-xl text-center"><p className="text-brand-600 font-bold text-xs uppercase">Rides</p><p className="text-xl font-black text-brand-900">{customerBookings.length}</p></div>
                 </div>
              </div>
-             <div className="overflow-y-auto max-h-60 border border-slate-100 rounded-xl">
-                 <table className="w-full text-sm text-left">
-                    <TableHeader headers={['ID', 'Bike', 'Dates', 'Status', 'Paid']} />
-                    <tbody className="divide-y divide-slate-50">
-                        {customerBookings.map(b => (
-                            <tr key={b.id}>
-                                <td className="px-6 py-4 font-mono text-xs text-slate-400">#{b.id}</td>
-                                <td className="px-6 py-4 font-bold">#{b.vehicleId}</td>
-                                <td className="px-6 py-4 text-xs">{b.startDate} to {b.endDate}</td>
-                                <td className="px-6 py-4"><Badge color={b.status==='Active'?'brand':'slate'}>{b.status}</Badge></td>
-                                <td className="px-6 py-4 font-bold">₹{b.amountCollected}</td>
-                            </tr>
-                        ))}
-                    </tbody>
-                 </table>
+             <div className="border border-slate-100 rounded-xl bg-white overflow-hidden">
+                 <div className="hidden sm:block overflow-x-auto max-h-60">
+                     <table className="w-full text-sm text-left">
+                        <TableHeader headers={['ID', 'Bike', 'Dates', 'Status', 'Paid']} />
+                        <tbody className="divide-y divide-slate-50">
+                            {customerBookings.map(b => (
+                                <tr key={b.id}>
+                                    <td className="px-6 py-4 font-mono text-xs text-slate-400">#{b.id}</td>
+                                    <td className="px-6 py-4 font-bold">#{b.vehicleId}</td>
+                                    <td className="px-6 py-4 text-xs">{formatDate(b.startDate)} to {formatDate(b.endDate)}</td>
+                                    <td className="px-6 py-4"><Badge color={b.status==='Active'?'brand':'slate'}>{b.status}</Badge></td>
+                                    <td className="px-6 py-4 font-bold">₹{b.amountCollected}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                     </table>
+                 </div>
+                 <div className="sm:hidden p-4 space-y-3 max-h-96 overflow-y-auto">
+                    {customerBookings.map(b => (
+                        <div key={b.id} className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+                            <div className="flex justify-between items-center mb-2">
+                                <span className="text-[10px] font-black text-slate-400">#{b.id}</span>
+                                <Badge color={b.status==='Active'?'brand':'slate'}>{b.status}</Badge>
+                            </div>
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <span className="block font-bold text-slate-900">Bike #{b.vehicleId}</span>
+                                    <span className="text-[10px] text-slate-500">{formatDate(b.startDate)} - {formatDate(b.endDate)}</span>
+                                </div>
+                                <span className="font-mono font-bold text-emerald-700">₹{b.amountCollected}</span>
+                            </div>
+                        </div>
+                    ))}
+                    {customerBookings.length === 0 && <div className="text-center text-slate-400 text-xs italic">No history found.</div>}
+                 </div>
              </div>
         </Modal>
     );
@@ -1054,6 +1121,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
     const [showBookings, setShowBookings] = useState(false);
     const [showCities, setShowCities] = useState(false);
     
+    // History Modal State
+    const [viewHistoryFor, setViewHistoryFor] = useState<Customer | null>(null);
+    
     // Export Handler
     const handleExport = (type: 'bookings' | 'vehicles' | 'customers') => {
         const data = type === 'bookings' ? props.bookings 
@@ -1070,10 +1140,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
                     <h1 className="text-3xl font-black text-slate-900 tracking-tight">Admin Console</h1>
                     <p className="text-slate-500 font-medium">Overview & Configuration</p>
                 </div>
-                <div className="flex gap-3">
-                    <div className="relative group">
-                        <Button variant="secondary" className="gap-2">
-                            <DownloadIcon className="w-4 h-4"/> Export Data
+                <div className="flex gap-3 w-full md:w-auto">
+                    <div className="relative group flex-1 md:flex-none">
+                        <Button variant="secondary" className="gap-2 w-full md:w-auto justify-center">
+                            <DownloadIcon className="w-4 h-4"/> Export
                         </Button>
                         <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-xl border border-slate-100 p-2 hidden group-hover:block z-10">
                             <button onClick={() => handleExport('bookings')} className="w-full text-left px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 rounded-lg">Export Bookings</button>
@@ -1081,19 +1151,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
                             <button onClick={() => handleExport('customers')} className="w-full text-left px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 rounded-lg">Export Customers</button>
                         </div>
                     </div>
-                    <Button variant="primary" onClick={() => setShowLegacyImport(true)} className="gap-2">
-                        <ArrowPathIcon className="w-4 h-4"/> Import Legacy
+                    <Button variant="primary" onClick={() => setShowLegacyImport(true)} className="gap-2 flex-1 md:flex-none justify-center">
+                        <ArrowPathIcon className="w-4 h-4"/> Import
                     </Button>
                 </div>
             </div>
 
             {/* Navigation Tabs */}
-            <div className="flex gap-1 bg-white p-1.5 rounded-xl border border-slate-200 w-full md:w-fit overflow-x-auto">
+            <div className="flex gap-1 bg-white p-1.5 rounded-xl border border-slate-200 w-full md:w-fit overflow-x-auto no-scrollbar">
                 {['dashboard', 'bookings', 'inventory', 'batteries', 'rates', 'cities', 'users', 'customers'].map((s) => (
                     <button
                         key={s}
                         onClick={() => setSection(s as AdminSection)}
-                        className={`px-6 py-2 rounded-lg text-sm font-bold capitalize transition-all whitespace-nowrap ${section === s ? 'bg-slate-900 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`}
+                        className={`px-6 py-2 rounded-lg text-sm font-bold capitalize transition-all whitespace-nowrap flex-shrink-0 ${section === s ? 'bg-slate-900 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`}
                     >
                         {s}
                     </button>
@@ -1110,7 +1180,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
                         <Button onClick={() => setShowBookings(true)}><DocumentChartBarIcon className="w-4 h-4 mr-2"/> Manage Bookings</Button>
                     </div>
                      <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
-                        <div className="overflow-x-auto">
+                        <div className="hidden sm:block overflow-x-auto">
                             <table className="w-full text-sm text-left">
                                 <TableHeader headers={['ID', 'Customer', 'Vehicle', 'Start Date', 'Status', 'Paid', 'Due']} />
                                 <tbody className="divide-y divide-slate-50">
@@ -1119,7 +1189,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
                                             <td className="px-6 py-4 font-mono text-xs text-slate-400">#{b.id}</td>
                                             <td className="px-6 py-4 font-bold">{b.customerName}</td>
                                             <td className="px-6 py-4">#{b.vehicleId}</td>
-                                            <td className="px-6 py-4">{b.startDate}</td>
+                                            <td className="px-6 py-4">{formatDate(b.startDate)}</td>
                                             <td className="px-6 py-4"><Badge color={b.status === 'Active' ? 'brand' : b.status === 'Returned' ? 'emerald' : 'amber'}>{b.status}</Badge></td>
                                             <td className="px-6 py-4">₹{b.amountCollected}</td>
                                             <td className="px-6 py-4 text-rose-600 font-bold">₹{Math.max(0, (b.totalRent + b.securityDeposit + (b.fineAmount || 0)) - (b.amountCollected || 0))}</td>
@@ -1127,6 +1197,25 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
                                     ))}
                                 </tbody>
                             </table>
+                        </div>
+                        <div className="sm:hidden p-4 space-y-3">
+                            {props.bookings.sort((a,b) => b.id - a.id).slice(0, 20).map(b => (
+                                <div key={b.id} className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                                    <div className="flex justify-between items-start mb-2">
+                                        <div>
+                                            <span className="text-xs font-black text-slate-400">#{b.id}</span>
+                                            <p className="font-bold text-slate-900">{b.customerName}</p>
+                                        </div>
+                                        <Badge color={b.status === 'Active' ? 'brand' : b.status === 'Returned' ? 'emerald' : 'amber'}>{b.status}</Badge>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2 text-xs text-slate-600 mb-3">
+                                        <div>Bike: <b>#{b.vehicleId}</b></div>
+                                        <div>Start: {formatDate(b.startDate)}</div>
+                                        <div>Paid: ₹{b.amountCollected}</div>
+                                        <div>Due: <span className="text-rose-600 font-bold">₹{Math.max(0, (b.totalRent + b.securityDeposit + (b.fineAmount || 0)) - (b.amountCollected || 0))}</span></div>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                         <div className="p-4 text-center text-xs text-slate-400 bg-slate-50 border-t border-slate-100">Showing last 20 records. Use Manage Bookings to see all.</div>
                     </div>
@@ -1140,20 +1229,37 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
                         <Button onClick={() => setShowInventory(true)}><PlusIcon className="w-4 h-4 mr-2"/> Manage Vehicles</Button>
                     </div>
                     <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
-                        <table className="w-full text-sm text-left">
-                            <TableHeader headers={['ID', 'Model', 'City', 'Status', 'Battery']} />
-                            <tbody className="divide-y divide-slate-50">
-                                {props.vehicles.map(v => (
-                                    <tr key={v.id}>
-                                        <td className="px-6 py-4 text-slate-500">#{v.id}</td>
-                                        <td className="px-6 py-4 font-bold">{v.modelName}</td>
-                                        <td className="px-6 py-4">{props.cities.find(c => c.id === v.cityId)?.name}</td>
-                                        <td className="px-6 py-4"><Badge color={v.status === 'Available' ? 'emerald' : 'brand'}>{v.status}</Badge></td>
-                                        <td className="px-6 py-4 text-slate-500">{v.batteryId ? `#${v.batteryId}` : '-'}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                        <div className="hidden sm:block">
+                            <table className="w-full text-sm text-left">
+                                <TableHeader headers={['ID', 'Model', 'City', 'Status', 'Battery']} />
+                                <tbody className="divide-y divide-slate-50">
+                                    {props.vehicles.map(v => (
+                                        <tr key={v.id}>
+                                            <td className="px-6 py-4 text-slate-500">#{v.id}</td>
+                                            <td className="px-6 py-4 font-bold">{v.modelName}</td>
+                                            <td className="px-6 py-4">{props.cities.find(c => c.id === v.cityId)?.name}</td>
+                                            <td className="px-6 py-4"><Badge color={v.status === 'Available' ? 'emerald' : 'brand'}>{v.status}</Badge></td>
+                                            <td className="px-6 py-4 text-slate-500">{v.batteryId ? `#${v.batteryId}` : '-'}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div className="sm:hidden p-4 space-y-3">
+                            {props.vehicles.map(v => (
+                                <div key={v.id} className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex justify-between items-center">
+                                    <div>
+                                        <p className="text-xs font-bold text-slate-400 uppercase">#{v.id}</p>
+                                        <p className="font-bold text-slate-900">{v.modelName}</p>
+                                        <p className="text-xs text-slate-500">{props.cities.find(c => c.id === v.cityId)?.name}</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <Badge color={v.status === 'Available' ? 'emerald' : 'brand'}>{v.status}</Badge>
+                                        <p className="text-xs text-slate-400 mt-1">{v.batteryId ? `Batt: #${v.batteryId}` : 'No Batt'}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 </div>
             )}
@@ -1165,19 +1271,35 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
                         <Button onClick={() => setShowBatteries(true)}><BoltIcon className="w-4 h-4 mr-2"/> Manage Batteries</Button>
                     </div>
                     <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
-                        <table className="w-full text-sm text-left">
-                            <TableHeader headers={['Serial', 'City', 'Charge', 'Status']} />
-                            <tbody className="divide-y divide-slate-50">
-                                {props.batteries.map(b => (
-                                    <tr key={b.id}>
-                                        <td className="px-6 py-4 font-medium">{b.serialNumber}</td>
-                                        <td className="px-6 py-4">{props.cities.find(c => c.id === b.cityId)?.name}</td>
-                                        <td className="px-6 py-4 font-bold text-slate-900">{b.chargePercentage}%</td>
-                                        <td className="px-6 py-4"><Badge color={b.status === 'Available' ? 'emerald' : 'amber'}>{b.status}</Badge></td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                        <div className="hidden sm:block">
+                            <table className="w-full text-sm text-left">
+                                <TableHeader headers={['Serial', 'City', 'Charge', 'Status']} />
+                                <tbody className="divide-y divide-slate-50">
+                                    {props.batteries.map(b => (
+                                        <tr key={b.id}>
+                                            <td className="px-6 py-4 font-medium">{b.serialNumber}</td>
+                                            <td className="px-6 py-4">{props.cities.find(c => c.id === b.cityId)?.name}</td>
+                                            <td className="px-6 py-4 font-bold text-slate-900">{b.chargePercentage}%</td>
+                                            <td className="px-6 py-4"><Badge color={b.status === 'Available' ? 'emerald' : 'amber'}>{b.status}</Badge></td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div className="sm:hidden p-4 space-y-3">
+                            {props.batteries.map(b => (
+                                <div key={b.id} className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex justify-between items-center">
+                                    <div>
+                                        <p className="font-bold text-slate-900">{b.serialNumber}</p>
+                                        <p className="text-xs text-slate-500">{props.cities.find(c => c.id === b.cityId)?.name}</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="font-black text-slate-800">{b.chargePercentage}%</p>
+                                        <Badge color={b.status === 'Available' ? 'emerald' : 'amber'}>{b.status}</Badge>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                 </div>
             )}
@@ -1214,18 +1336,31 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
                         <Button onClick={() => setShowCities(true)}><PlusIcon className="w-4 h-4 mr-2"/> Manage Cities</Button>
                     </div>
                      <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
-                        <table className="w-full text-sm text-left">
-                            <TableHeader headers={['ID', 'City Name', 'Hub Address']} />
-                            <tbody className="divide-y divide-slate-50">
-                                {props.cities.map(c => (
-                                    <tr key={c.id}>
-                                        <td className="px-6 py-4 text-slate-500">#{c.id}</td>
-                                        <td className="px-6 py-4 font-bold">{c.name}</td>
-                                        <td className="px-6 py-4 text-slate-600">{c.zapPointAddress || '-'}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                        <div className="hidden sm:block">
+                            <table className="w-full text-sm text-left">
+                                <TableHeader headers={['ID', 'City Name', 'Hub Address']} />
+                                <tbody className="divide-y divide-slate-50">
+                                    {props.cities.map(c => (
+                                        <tr key={c.id}>
+                                            <td className="px-6 py-4 text-slate-500">#{c.id}</td>
+                                            <td className="px-6 py-4 font-bold">{c.name}</td>
+                                            <td className="px-6 py-4 text-slate-600">{c.zapPointAddress || '-'}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div className="sm:hidden p-4 space-y-3">
+                            {props.cities.map(c => (
+                                <div key={c.id} className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                                    <div className="flex justify-between">
+                                        <span className="font-bold text-slate-900">{c.name}</span>
+                                        <span className="text-xs font-bold text-slate-400">ID: {c.id}</span>
+                                    </div>
+                                    <p className="text-sm text-slate-600 mt-1">{c.zapPointAddress || 'No Address'}</p>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                  </div>
             )}
@@ -1237,24 +1372,53 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
                         <Button onClick={() => setShowCustomers(true)}><UserGroupIcon className="w-4 h-4 mr-2"/> Manage Customers</Button>
                     </div>
                      <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm">
-                        <table className="w-full text-sm text-left">
-                            <TableHeader headers={['Name', 'Phone', 'City', 'KYC']} />
-                            <tbody className="divide-y divide-slate-50">
-                                {props.customers.map(c => (
-                                    <tr key={c.id}>
-                                        <td className="px-6 py-4 font-bold text-slate-900">{c.name}</td>
-                                        <td className="px-6 py-4 text-slate-600">{c.phone}</td>
-                                        <td className="px-6 py-4">{props.cities.find(ct => ct.id === c.cityId)?.name || 'N/A'}</td>
-                                        <td className="px-6 py-4">{c.aadharNumber ? <Badge color="emerald">Verified</Badge> : <Badge color="amber">Pending</Badge>}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                        <div className="hidden sm:block">
+                            <table className="w-full text-sm text-left">
+                                <TableHeader headers={['Name', 'Phone', 'City', 'KYC']} />
+                                <tbody className="divide-y divide-slate-50">
+                                    {props.customers.map(c => (
+                                        <tr key={c.id}>
+                                            <td className="px-6 py-4 font-bold text-slate-900">
+                                                <button onClick={() => setViewHistoryFor(c)} className="hover:text-brand-600 hover:underline text-left">
+                                                    {c.name}
+                                                </button>
+                                            </td>
+                                            <td className="px-6 py-4 text-slate-600">{c.phone}</td>
+                                            <td className="px-6 py-4">{props.cities.find(ct => ct.id === c.cityId)?.name || 'N/A'}</td>
+                                            <td className="px-6 py-4">{c.aadharNumber ? <Badge color="emerald">Verified</Badge> : <Badge color="amber">Pending</Badge>}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div className="sm:hidden p-4 space-y-3">
+                            {props.customers.map(c => (
+                                <div onClick={() => setViewHistoryFor(c)} key={c.id} className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex justify-between items-center cursor-pointer active:scale-95 transition-transform">
+                                    <div>
+                                        <p className="font-bold text-slate-900 hover:text-brand-600">{c.name}</p>
+                                        <p className="text-xs text-slate-500">{c.phone}</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-xs text-slate-500 mb-1">{props.cities.find(ct => ct.id === c.cityId)?.name || 'N/A'}</p>
+                                        {c.aadharNumber ? <Badge color="emerald">Verified</Badge> : <Badge color="amber">Pending</Badge>}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                  </div>
             )}
 
             {/* Modals */}
+            {viewHistoryFor && (
+                <CustomerHistoryModal 
+                    customer={viewHistoryFor} 
+                    bookings={props.bookings} 
+                    vehicles={props.vehicles} 
+                    onClose={() => setViewHistoryFor(null)} 
+                />
+            )}
+
             {showLegacyImport && <ImportLegacyDataModal onClose={() => setShowLegacyImport(false)} onImport={props.importLegacyData} />}
             
             {showInventory && (
