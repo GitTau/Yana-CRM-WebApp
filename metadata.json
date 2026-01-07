@@ -1,5 +1,5 @@
 {
-  "name": "Yana EV Manageement",
+  "name": "Bike Rental Management",
   "description": "An internal app for an EV fleet company to manage bike rentals, track payments, and store operational data. It includes separate panels for operations staff and administrators.",
   "requestFramePermissions": []
 }

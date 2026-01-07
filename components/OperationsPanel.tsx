@@ -40,26 +40,6 @@ const addDuration = (dateStr: string, value: number, unit: 'weeks' | 'months') =
     return d.toISOString().split('T')[0];
 };
 
-// Helper to format date as DD-MM-YYYY
-const formatDate = (dateStr: string): string => {
-    if (!dateStr) return '-';
-    // Handle YYYY-MM-DD
-    const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
-    if (match) {
-        return `${match[3]}-${match[2]}-${match[1]}`;
-    }
-    // Fallback for ISO strings
-    try {
-        const d = new Date(dateStr);
-        const day = String(d.getDate()).padStart(2, '0');
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        const year = d.getFullYear();
-        return `${day}-${month}-${year}`;
-    } catch {
-        return dateStr;
-    }
-};
-
 const getOverdueStats = (booking: Booking) => {
     const today = new Date();
     today.setHours(0,0,0,0);
@@ -161,7 +141,7 @@ const ActiveRentalsList: React.FC<{ bookings: Booking[] }> = ({ bookings }) => (
                     <tr key={b.id} className="bg-white hover:bg-slate-50">
                         <td className="px-4 py-3 font-bold">#{b.vehicleId}</td>
                         <td className="px-4 py-3">{b.customerName}<br/><span className="text-[10px] text-slate-400">{b.customerPhone}</span></td>
-                        <td className="px-4 py-3 text-xs">{formatDate(b.startDate)} <span className="text-slate-400">/</span> {formatDate(b.endDate)}</td>
+                        <td className="px-4 py-3 text-xs">{b.startDate} <span className="text-slate-400">/</span> {b.endDate}</td>
                         <td className="px-4 py-3 text-right font-mono font-bold text-slate-700">₹{Math.max(0, (b.totalRent + b.securityDeposit + (b.fineAmount||0)) - b.amountCollected)}</td>
                     </tr>
                 ))}
@@ -249,7 +229,7 @@ const OverdueListModal: React.FC<{ bookings: Booking[]; onClose: () => void }> =
                                             <div className="font-bold text-slate-900">{b.customerName}</div>
                                             <div className="text-xs text-slate-500">{b.customerPhone}</div>
                                         </td>
-                                        <td className="px-4 py-3 text-xs font-mono">{formatDate(b.endDate)}</td>
+                                        <td className="px-4 py-3 text-xs font-mono">{b.endDate}</td>
                                         <td className="px-4 py-3 text-center">
                                             <Badge color="rose">{stats.days} Days</Badge>
                                         </td>
@@ -402,7 +382,7 @@ const ExtendRentalForm: React.FC<{ booking: Booking; rates: Rate[]; onClose: () 
         <div className="space-y-6">
             <div className="flex p-1 bg-slate-100 rounded-lg"><button onClick={() => setUnit('weeks')} className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${unit === 'weeks' ? 'bg-white shadow-sm text-brand-600' : 'text-slate-500'}`}>Weeks</button><button onClick={() => setUnit('months')} className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${unit === 'months' ? 'bg-white shadow-sm text-brand-600' : 'text-slate-500'}`}>Months</button></div>
             <div className="space-y-1"><label className="text-xs font-bold text-slate-500 uppercase">Extend By</label><div className="flex items-center gap-3"><button onClick={() => setDuration(Math.max(1, duration - 1))} className="p-2 rounded-lg bg-slate-200 hover:bg-slate-300 font-bold">-</button><span className="flex-1 text-center font-bold text-lg">{duration} {unit === 'weeks' ? 'Week(s)' : 'Month(s)'}</span><button onClick={() => setDuration(duration + 1)} className="p-2 rounded-lg bg-slate-200 hover:bg-slate-300 font-bold">+</button></div></div>
-            <div className="p-4 bg-brand-50 rounded-xl border border-brand-200 text-center space-y-2"><div><span className="text-xs text-brand-600 font-bold uppercase">New Expiry Date</span><p className="text-lg font-bold text-slate-900">{formatDate(newEndDate)}</p></div><div className="pt-2 border-t border-brand-200"><span className="text-xs text-brand-600 font-bold uppercase">Extra Rent to Collect</span><p className="text-2xl font-black text-brand-800">₹{extraRent}</p></div></div>
+            <div className="p-4 bg-brand-50 rounded-xl border border-brand-200 text-center space-y-2"><div><span className="text-xs text-brand-600 font-bold uppercase">New Expiry Date</span><p className="text-lg font-bold text-slate-900">{newEndDate}</p></div><div className="pt-2 border-t border-brand-200"><span className="text-xs text-brand-600 font-bold uppercase">Extra Rent to Collect</span><p className="text-2xl font-black text-brand-800">₹{extraRent}</p></div></div>
             <Button onClick={() => onSubmit(extraRent, extraRent, newEndDate)} className="w-full">Confirm Extension</Button>
         </div>
     );
@@ -431,7 +411,7 @@ const BookingForm: React.FC<{ cityId: number; rates: Rate[]; vehicles: Vehicle[]
             <div className="flex gap-2"><Select value={customerId} onChange={e => setCustomerId(Number(e.target.value))} required className="flex-1"><option value="">Select Rider</option>{customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}</Select><Button type="button" variant="secondary" onClick={onAddNewCustomer} className="px-3" title="Add New Rider"><UserGroupIcon className="w-5 h-5 text-brand-600"/></Button></div>
             <div className="grid grid-cols-2 gap-2"><Select value={vehicleId} onChange={e => setVehicleId(Number(e.target.value))} required><option value="">Bike</option>{vehicles.filter(v => v.cityId === cityId && v.status === VehicleStatus.Available).map(v => <option key={v.id} value={v.id}>{v.modelName} (#{v.id})</option>)}</Select><Select value={batteryId} onChange={e => setBatteryId(Number(e.target.value))}><option value="">Battery (Opt)</option>{batteries.filter(b => b.cityId === cityId && b.status === BatteryStatus.Available).map(b => <option key={b.id} value={b.id}>{b.serialNumber}</option>)}</Select></div>
             <Select value={rateId} onChange={e => setRateId(Number(e.target.value))} required><option value="">Select Rate Plan</option>{rates.filter(r => r.cityId === cityId).map(r => <option key={r.id} value={r.id}>{r.clientName || 'General'} (Daily: ₹{r.dailyRent} {r.monthlyRent ? `/ Monthly: ₹${r.monthlyRent}` : ''})</option>)}</Select>
-            <div className="p-4 bg-slate-50 rounded-xl space-y-4 border border-slate-100"><div><label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Start Date</label><Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} required /></div><div><label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Duration</label><div className="flex gap-2"><div className="flex bg-white border border-slate-200 rounded-lg p-1"><button type="button" onClick={() => setUnit('weeks')} className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${unit === 'weeks' ? 'bg-slate-900 text-white' : 'text-slate-500'}`}>Weeks</button><button type="button" onClick={() => setUnit('months')} className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${unit === 'months' ? 'bg-slate-900 text-white' : 'text-slate-500'}`}>Months</button></div><input type="number" min="1" value={duration} onChange={e => setDuration(Number(e.target.value))} className="flex-1 block w-full rounded-lg border border-slate-200 bg-white px-3 py-1 text-sm text-center font-bold" /></div></div><div className="flex justify-between items-center pt-2 border-t border-slate-200"><span className="text-xs font-bold text-slate-500 uppercase">Ends On</span><span className="text-sm font-bold text-slate-900">{formatDate(endDate)}</span></div></div>
+            <div className="p-4 bg-slate-50 rounded-xl space-y-4 border border-slate-100"><div><label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Start Date</label><Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} required /></div><div><label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Duration</label><div className="flex gap-2"><div className="flex bg-white border border-slate-200 rounded-lg p-1"><button type="button" onClick={() => setUnit('weeks')} className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${unit === 'weeks' ? 'bg-slate-900 text-white' : 'text-slate-500'}`}>Weeks</button><button type="button" onClick={() => setUnit('months')} className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${unit === 'months' ? 'bg-slate-900 text-white' : 'text-slate-500'}`}>Months</button></div><input type="number" min="1" value={duration} onChange={e => setDuration(Number(e.target.value))} className="flex-1 block w-full rounded-lg border border-slate-200 bg-white px-3 py-1 text-sm text-center font-bold" /></div></div><div className="flex justify-between items-center pt-2 border-t border-slate-200"><span className="text-xs font-bold text-slate-500 uppercase">Ends On</span><span className="text-sm font-bold text-slate-900">{endDate}</span></div></div>
             {selectedRate && (<div className="p-4 bg-brand-50 rounded-xl space-y-2 border border-brand-100"><div className="flex justify-between text-xs text-brand-800"><span>Rent ({duration} {unit})</span><span>₹{calc.rent}</span></div><div className="flex justify-between text-xs text-brand-800"><span>Security Deposit</span><span>₹{calc.deposit}</span></div><div className="flex justify-between font-black text-slate-900 border-t border-brand-200 pt-2 text-lg"><span>Total Payable</span><span>₹{calc.total}</span></div></div>)}
             <Input type="number" placeholder="Amount Collecting Now (₹)" value={collected} onChange={e => setCollected(Number(e.target.value))} />
             <Button type="submit" className="w-full">Create Booking</Button>
@@ -558,7 +538,7 @@ export const OperationsPanel: React.FC<OperationsPanelProps> = (props) => {
                                             <td className="px-6 py-4 font-bold">#{booking.vehicleId}</td>
                                             <td className="px-6 py-4">{booking.customerName}</td>
                                             <td className="px-6 py-4 text-xs">
-                                                {formatDate(booking.startDate)} <span className="text-slate-400">/</span> {formatDate(booking.endDate)}
+                                                {booking.startDate} <span className="text-slate-400">/</span> {booking.endDate}
                                                 {overdue.days > 0 && <span className="block mt-1 text-[9px] font-bold text-rose-600 bg-rose-100 px-1 rounded w-fit">LATE: {overdue.days} DAYS</span>}
                                             </td>
                                             <td className="px-6 py-4 font-black text-rose-600">₹{pending}</td>

@@ -49,26 +49,6 @@ const matchEnum = <T extends string>(value: string, enumObj: Record<string, T>, 
     return found || defaultValue;
 };
 
-// Helper to format date as DD-MM-YYYY
-const formatDate = (dateStr: string): string => {
-    if (!dateStr) return '-';
-    // Handle YYYY-MM-DD
-    const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
-    if (match) {
-        return `${match[3]}-${match[2]}-${match[1]}`;
-    }
-    // Fallback for ISO strings
-    try {
-        const d = new Date(dateStr);
-        const day = String(d.getDate()).padStart(2, '0');
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        const year = d.getFullYear();
-        return `${day}-${month}-${year}`;
-    } catch {
-        return dateStr;
-    }
-};
-
 const downloadCSV = (data: any[], filename: string) => {
     if (!data || !data.length) return;
     const headers = Object.keys(data[0]).join(',');
@@ -177,7 +157,7 @@ const RevenueChart: React.FC<{ bookings: Booking[] }> = ({ bookings }) => {
                 <polyline fill="none" stroke="#00EAFF" strokeWidth="2" points={points} vectorEffect="non-scaling-stroke" />
             </svg>
             <div className="flex justify-between mt-2 border-t border-slate-100 pt-2 text-[10px] text-slate-400 font-bold uppercase">
-                {dataPoints.map(d => <span key={d.date}>{formatDate(d.date).slice(0, 5)}</span>)}
+                {dataPoints.map(d => <span key={d.date}>{d.date.slice(5)}</span>)}
             </div>
         </div>
     );
@@ -476,7 +456,7 @@ const ManageBookingsModal: React.FC<{ bookings: Booking[]; onClose: () => void; 
                                     <td className="px-6 py-4 font-bold">{b.customerName}</td>
                                     <td className="px-6 py-4 text-slate-600">#{b.vehicleId}</td>
                                     <td className="px-6 py-4"><Badge color={b.status === 'Active' ? 'brand' : b.status === 'Returned' ? 'emerald' : 'amber'}>{b.status}</Badge></td>
-                                    <td className="px-6 py-4 text-xs">{formatDate(b.startDate)} <br/> {formatDate(b.endDate)}</td>
+                                    <td className="px-6 py-4 text-xs">{b.startDate} <br/> {b.endDate}</td>
                                     <td className="px-6 py-4 text-xs">
                                         Rent: ₹{b.totalRent}<br/>
                                         Coll: ₹{b.amountCollected}<br/>
@@ -522,7 +502,7 @@ const CustomerHistoryModal: React.FC<{ customer: Customer; bookings: Booking[]; 
                             <tr key={b.id}>
                                 <td className="px-6 py-4 font-mono text-xs text-slate-400">#{b.id}</td>
                                 <td className="px-6 py-4 font-bold">#{b.vehicleId}</td>
-                                <td className="px-6 py-4 text-xs">{formatDate(b.startDate)} to {formatDate(b.endDate)}</td>
+                                <td className="px-6 py-4 text-xs">{b.startDate} to {b.endDate}</td>
                                 <td className="px-6 py-4"><Badge color={b.status==='Active'?'brand':'slate'}>{b.status}</Badge></td>
                                 <td className="px-6 py-4 font-bold">₹{b.amountCollected}</td>
                             </tr>
@@ -1139,7 +1119,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = (props) => {
                                             <td className="px-6 py-4 font-mono text-xs text-slate-400">#{b.id}</td>
                                             <td className="px-6 py-4 font-bold">{b.customerName}</td>
                                             <td className="px-6 py-4">#{b.vehicleId}</td>
-                                            <td className="px-6 py-4">{formatDate(b.startDate)}</td>
+                                            <td className="px-6 py-4">{b.startDate}</td>
                                             <td className="px-6 py-4"><Badge color={b.status === 'Active' ? 'brand' : b.status === 'Returned' ? 'emerald' : 'amber'}>{b.status}</Badge></td>
                                             <td className="px-6 py-4">₹{b.amountCollected}</td>
                                             <td className="px-6 py-4 text-rose-600 font-bold">₹{Math.max(0, (b.totalRent + b.securityDeposit + (b.fineAmount || 0)) - (b.amountCollected || 0))}</td>
